@@ -367,12 +367,7 @@ class DayViewState<T extends Object?> extends State<DayView<T>> {
       initialScrollOffset: _lastScrollOffset,
     );
     _pageController = PageController(initialPage: _currentIndex);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _pageController.hasClients) {
-        _pageController.position.isScrollingNotifier
-            .addListener(_onScrollSettled);
-      }
-    }); // Moved listener here
+    // Removed listener from initState
     _eventArranger = widget.eventArranger ?? SideEventArranger<T>();
     _assignBuilders();
   }
@@ -394,6 +389,18 @@ class DayViewState<T extends Object?> extends State<DayView<T>> {
         // Reloads the view if there is any change in controller or
         // user adds new events.
         ..addListener(_reloadCallback);
+    }
+    if (_pageController.hasClients) {
+      _pageController.position.isScrollingNotifier
+          .addListener(_onScrollSettled);
+    } else {
+      // If not attached yet, add post-frame
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _pageController.hasClients) {
+          _pageController.position.isScrollingNotifier
+              .addListener(_onScrollSettled);
+        }
+      });
     }
   }
 
@@ -430,8 +437,10 @@ class DayViewState<T extends Object?> extends State<DayView<T>> {
 
   @override
   void dispose() {
-    _pageController.position.isScrollingNotifier
-        .removeListener(_onScrollSettled);
+    if (_pageController.hasClients) {
+      _pageController.position.isScrollingNotifier
+          .removeListener(_onScrollSettled);
+    }
     _controller?.removeListener(_reloadCallback);
     _pageController.dispose();
     super.dispose();
