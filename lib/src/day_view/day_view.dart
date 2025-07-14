@@ -367,6 +367,7 @@ class DayViewState<T extends Object?> extends State<DayView<T>> {
       initialScrollOffset: _lastScrollOffset,
     );
     _pageController = PageController(initialPage: _currentIndex);
+    _pageController.position.isScrollingNotifier.addListener(_onScrollSettled);
     _eventArranger = widget.eventArranger ?? SideEventArranger<T>();
     _assignBuilders();
   }
@@ -424,6 +425,8 @@ class DayViewState<T extends Object?> extends State<DayView<T>> {
 
   @override
   void dispose() {
+    _pageController.position.isScrollingNotifier
+        .removeListener(_onScrollSettled);
     _controller?.removeListener(_reloadCallback);
     _pageController.dispose();
     super.dispose();
@@ -452,7 +455,7 @@ class DayViewState<T extends Object?> extends State<DayView<T>> {
                       physics: widget.pageViewPhysics,
                       itemCount: _totalDays,
                       controller: _pageController,
-                      onPageChanged: _onPageChange,
+                      // onPageChanged: _onPageChange,
                       itemBuilder: (_, index) {
                         final date = DateTime(_minDate.year, _minDate.month,
                             _minDate.day + index);
@@ -749,24 +752,52 @@ class DayViewState<T extends Object?> extends State<DayView<T>> {
     );
   }
 
+  void _onScrollSettled() {
+    if (!_pageController.hasClients ||
+        _pageController.position.isScrollingNotifier.value) {
+      return; // Skip if still scrolling or no clients
+    }
+
+    final page = _pageController.page;
+    if (page != null) {
+      final newIndex = page.round().toInt();
+      if (newIndex != _currentIndex) {
+        if (mounted) {
+          setState(() {
+            _currentDate = DateTime(
+              _currentDate.year,
+              _currentDate.month,
+              _currentDate.day + (newIndex - _currentIndex),
+            );
+            _currentIndex = newIndex;
+          });
+        }
+        if (!widget.keepScrollOffset) {
+          animateToDuration(widget.startDuration);
+        }
+        widget.onPageChange?.call(_currentDate, _currentIndex);
+      }
+    }
+  }
+
   /// Called when user change page using any gesture or inbuilt functions.
   ///
-  void _onPageChange(int index) {
-    if (mounted) {
-      setState(() {
-        _currentDate = DateTime(
-          _currentDate.year,
-          _currentDate.month,
-          _currentDate.day + (index - _currentIndex),
-        );
-        _currentIndex = index;
-      });
-    }
-    if (!widget.keepScrollOffset) {
-      animateToDuration(widget.startDuration);
-    }
-    widget.onPageChange?.call(_currentDate, _currentIndex);
-  }
+  // void _onPageChange(int index) {
+  //   if (mounted) {
+  //     setState(() {
+  //       _currentDate = DateTime(
+  //         _currentDate.year,
+  //         _currentDate.month,
+  //         _currentDate.day + (index - _currentIndex),
+  //       );
+  //       _currentIndex = index;
+  //     });
+  //   }
+  //   if (!widget.keepScrollOffset) {
+  //     animateToDuration(widget.startDuration);
+  //   }
+  //   widget.onPageChange?.call(_currentDate, _currentIndex);
+  // }
 
   /// Animate to next page
   ///
