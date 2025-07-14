@@ -367,7 +367,12 @@ class DayViewState<T extends Object?> extends State<DayView<T>> {
       initialScrollOffset: _lastScrollOffset,
     );
     _pageController = PageController(initialPage: _currentIndex);
-    _pageController.position.isScrollingNotifier.addListener(_onScrollSettled);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _pageController.hasClients) {
+        _pageController.position.isScrollingNotifier
+            .addListener(_onScrollSettled);
+      }
+    }); // Moved listener here
     _eventArranger = widget.eventArranger ?? SideEventArranger<T>();
     _assignBuilders();
   }
