@@ -559,8 +559,7 @@ class MonthViewState<T extends Object?> extends State<MonthView<T>> {
           setState(() {
             _currentDate = DateTime(
               _currentDate.year,
-              _currentDate.month,
-              _currentDate.day + (newIndex - _currentIndex),
+              _currentDate.month + (newIndex - _currentIndex),
             );
             _currentIndex = newIndex;
           });

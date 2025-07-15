@@ -919,8 +919,9 @@ class WeekViewState<T extends Object?> extends State<WeekView<T>> {
             _currentStartDate = DateTime(
               _currentStartDate.year,
               _currentStartDate.month,
-              _currentStartDate.day + (newIndex - _currentIndex),
+              _currentStartDate.day + (newIndex - _currentIndex) * 7,
             );
+            _currentEndDate = _currentStartDate.add(Duration(days: 6));
             _currentIndex = newIndex;
           });
         }
