@@ -306,6 +306,18 @@ class MonthViewState<T extends Object?> extends State<MonthView<T>> {
     }
 
     updateViewDimensions();
+    if (_pageController.hasClients) {
+      _pageController.position.isScrollingNotifier
+          .addListener(_onScrollSettled);
+    } else {
+      // If not attached yet, add post-frame
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _pageController.hasClients) {
+          _pageController.position.isScrollingNotifier
+              .addListener(_onScrollSettled);
+        }
+      });
+    }
   }
 
   @override
@@ -338,6 +350,10 @@ class MonthViewState<T extends Object?> extends State<MonthView<T>> {
 
   @override
   void dispose() {
+    if (_pageController.hasClients) {
+      _pageController.position.isScrollingNotifier
+          .removeListener(_onScrollSettled);
+    }
     _controller?.removeListener(_reloadCallback);
     _pageController.dispose();
     super.dispose();
@@ -360,7 +376,6 @@ class MonthViewState<T extends Object?> extends State<MonthView<T>> {
               child: PageView.builder(
                 controller: _pageController,
                 physics: widget.pageViewPhysics,
-                onPageChanged: _onPageChange,
                 itemBuilder: (_, index) {
                   final date = DateTime(_minDate.year, _minDate.month + index);
                   final weekDays = date.datesOfWeek(
@@ -530,17 +545,29 @@ class MonthViewState<T extends Object?> extends State<MonthView<T>> {
   }
 
   /// Calls when user changes page using gesture or inbuilt methods.
-  void _onPageChange(int value) {
-    if (mounted) {
-      setState(() {
-        _currentDate = DateTime(
-          _currentDate.year,
-          _currentDate.month + (value - _currentIndex),
-        );
-        _currentIndex = value;
-      });
+  void _onScrollSettled() {
+    if (!_pageController.hasClients ||
+        _pageController.position.isScrollingNotifier.value) {
+      return; // Skip if still scrolling or no clients
     }
-    widget.onPageChange?.call(_currentDate, _currentIndex);
+
+    final page = _pageController.page;
+    if (page != null) {
+      final newIndex = page.round().toInt();
+      if (newIndex != _currentIndex) {
+        if (mounted) {
+          setState(() {
+            _currentDate = DateTime(
+              _currentDate.year,
+              _currentDate.month,
+              _currentDate.day + (newIndex - _currentIndex),
+            );
+            _currentIndex = newIndex;
+          });
+        }
+        widget.onPageChange?.call(_currentDate, _currentIndex);
+      }
+    }
   }
 
   /// Default month view header builder

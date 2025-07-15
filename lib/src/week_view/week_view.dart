@@ -441,6 +441,18 @@ class WeekViewState<T extends Object?> extends State<WeekView<T>> {
         // user adds new events.
         ..addListener(_reloadCallback);
     }
+    if (_pageController.hasClients) {
+      _pageController.position.isScrollingNotifier
+          .addListener(_onScrollSettled);
+    } else {
+      // If not attached yet, add post-frame
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _pageController.hasClients) {
+          _pageController.position.isScrollingNotifier
+              .addListener(_onScrollSettled);
+        }
+      });
+    }
   }
 
   @override
@@ -485,6 +497,10 @@ class WeekViewState<T extends Object?> extends State<WeekView<T>> {
 
   @override
   void dispose() {
+    if (_pageController.hasClients) {
+      _pageController.position.isScrollingNotifier
+          .removeListener(_onScrollSettled);
+    }
     _controller?.removeListener(_reloadCallback);
     _pageController.dispose();
     super.dispose();
@@ -517,7 +533,6 @@ class WeekViewState<T extends Object?> extends State<WeekView<T>> {
                       itemCount: _totalWeeks,
                       controller: _pageController,
                       physics: widget.pageViewPhysics,
-                      onPageChanged: _onPageChange,
                       itemBuilder: (_, index) {
                         final dates = DateTime(_minDate.year, _minDate.month,
                                 _minDate.day + (index * DateTime.daysPerWeek))
@@ -889,20 +904,29 @@ class WeekViewState<T extends Object?> extends State<WeekView<T>> {
     );
   }
 
-  /// Called when user change page using any gesture or inbuilt functions.
-  void _onPageChange(int index) {
-    if (mounted) {
-      setState(() {
-        _currentStartDate = DateTime(
-          _currentStartDate.year,
-          _currentStartDate.month,
-          _currentStartDate.day + (index - _currentIndex) * 7,
-        );
-        _currentEndDate = _currentStartDate.add(Duration(days: 6));
-        _currentIndex = index;
-      });
+  void _onScrollSettled() {
+    if (!_pageController.hasClients ||
+        _pageController.position.isScrollingNotifier.value) {
+      return; // Skip if still scrolling or no clients
     }
-    widget.onPageChange?.call(_currentStartDate, _currentIndex);
+
+    final page = _pageController.page;
+    if (page != null) {
+      final newIndex = page.round().toInt();
+      if (newIndex != _currentIndex) {
+        if (mounted) {
+          setState(() {
+            _currentStartDate = DateTime(
+              _currentStartDate.year,
+              _currentStartDate.month,
+              _currentStartDate.day + (newIndex - _currentIndex),
+            );
+            _currentIndex = newIndex;
+          });
+        }
+        widget.onPageChange?.call(_currentStartDate, _currentIndex);
+      }
+    }
   }
 
   /// Animate to next page

@@ -367,7 +367,6 @@ class DayViewState<T extends Object?> extends State<DayView<T>> {
       initialScrollOffset: _lastScrollOffset,
     );
     _pageController = PageController(initialPage: _currentIndex);
-    // Removed listener from initState
     _eventArranger = widget.eventArranger ?? SideEventArranger<T>();
     _assignBuilders();
   }
@@ -469,7 +468,6 @@ class DayViewState<T extends Object?> extends State<DayView<T>> {
                       physics: widget.pageViewPhysics,
                       itemCount: _totalDays,
                       controller: _pageController,
-                      // onPageChanged: _onPageChange,
                       itemBuilder: (_, index) {
                         final date = DateTime(_minDate.year, _minDate.month,
                             _minDate.day + index);
@@ -793,25 +791,6 @@ class DayViewState<T extends Object?> extends State<DayView<T>> {
       }
     }
   }
-
-  /// Called when user change page using any gesture or inbuilt functions.
-  ///
-  // void _onPageChange(int index) {
-  //   if (mounted) {
-  //     setState(() {
-  //       _currentDate = DateTime(
-  //         _currentDate.year,
-  //         _currentDate.month,
-  //         _currentDate.day + (index - _currentIndex),
-  //       );
-  //       _currentIndex = index;
-  //     });
-  //   }
-  //   if (!widget.keepScrollOffset) {
-  //     animateToDuration(widget.startDuration);
-  //   }
-  //   widget.onPageChange?.call(_currentDate, _currentIndex);
-  // }
 
   /// Animate to next page
   ///
